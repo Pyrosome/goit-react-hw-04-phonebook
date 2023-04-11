@@ -1,43 +1,44 @@
-import React, { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ContactForm } from './ContactForm/ContactForm';
 import { Filter } from './Filter/Filter';
 import { ContactList } from './ContactList/ContactList';
 import PropTypes from 'prop-types';
 import { nanoid } from "nanoid";
 
-const LS_KEY = 'contacts-list';
+export const App = () => {
 
-export class App extends Component {
-
-  state = { 
-    contacts: [
+  const LocalKey = 'contactsList';
+  const defaultContacts = [
     {id: 'id-1', name: 'Rosie Simpson', number: '459-12-56'},
     {id: 'id-2', name: 'Hermione Kline', number: '443-89-12'},
     {id: 'id-3', name: 'Eden Clements', number: '645-17-79'},
     {id: 'id-4', name: 'Annie Copeland', number: '227-91-26'},
-    ],
-    name: '',
-    number: '',
-    filter: '',
+  ]
+
+  const [contacts, setContacts] = useState(
+    () =>
+      JSON.parse(localStorage.getItem('contactList')) ?? defaultContacts
+  );
+  const [name, setName] = useState('');
+  const [number, setNumber] = useState('');
+  const [filter, setFilter]  = useState('');
+
+  const handleChangeName = e => {
+    const { value } = e.target;
+    setName(value);
   };
-  
-  handleChange = evt => {
-    const { name, value } = evt.target;
-    
-    if (name === "filter") {
-      this.setState({
-        [name]: value.toLocaleLowerCase()
-      })
-    } else {
-      this.setState({
-        [name]: value,
-      })
-    }
+  const handleChangeNumber = e => {
+    const { value } = e.target;
+    setNumber(value);
+  };
+
+  const handleChangeFilter = evt => {
+    const { value } = evt.target; 
+    setFilter(value.toLocaleLowerCase())
   }
 
-  handleSubmit = evt => {
+  const handleSubmitContact = evt => {
     evt.preventDefault();
-    const { name, number, contacts } = this.state;
     const newContact = {
       id: nanoid(),
       name: name,
@@ -50,71 +51,58 @@ export class App extends Component {
       alert("This contact already exists.");
     }
     else {
-      this.setState(prevState => ({
-        contacts: [...prevState.contacts, newContact]
-      }))
+      setContacts(prevState => [...prevState, newContact]
+      )
     }
+
+    reset();
+  }
+
+
+  useEffect(() => {
+    window.localStorage.setItem(LocalKey, JSON.stringify(contacts));
+  }, [contacts]);
+  
+  const getFilteredContacts = () => {
+    return contacts.filter(contact =>
+      contact.name.toLocaleLowerCase().includes(filter)
+    )
+  }
     
-    this.reset();
-  }
- 
-  componentDidUpdate(_, prevState) {
-    const { contacts } = this.state;
-    
-    if (prevState.contacts !== contacts) {
-      localStorage.setItem(LS_KEY, JSON.stringify(contacts));
-    }
-  }
-
-  componentDidMount() {
-    const contacts = JSON.parse(localStorage.getItem(LS_KEY))
-    if (contacts) {
-      this.setState({ contacts: contacts })
-    }
-  }
-
-  handleDelete = id => {
-    this.setState(prevState => ({
-      contacts: prevState.contacts.filter(contact => contact.id !== id),
-    }));
-  }
-
-  reset = () => {
-    this.setState({
-      name: '',
-      number: ''
+  const handleDelete = id => {
+    setContacts(prevState => {
+      let contacts = prevState.filter(contact => contact.id !== id);
+      return [...contacts];
     })
   }
-  
-  render() {
-    const { contacts, name, number, filter } = this.state;
-    const filteredContacts = contacts.filter(contact =>
-      contact.name.toLocaleLowerCase().includes(filter)
-    );
 
-    return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          marginLeft: '70px',
-          fontSize: 20,
-          color: '#010101'
-        }}
-      >
+  const reset = () => {
+    setName('');
+    setNumber('')
+  }
 
-        <h1>Phonebook</h1>
-        <ContactForm name={name} number={number} onChange={this.handleChange} onSubmit={this.handleSubmit} />
-        <h2 style={{ margin: '0px', marginTop: '50px' }}>Contacts</h2>
-        <Filter filter={this.handleChange} />
-        <ContactList contacts={filteredContacts} onDelete={this.handleDelete} />
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        marginLeft: '70px',
+        fontSize: 20,
+        color: '#010101'
+      }}
+    >
+
+      <h1>Phonebook</h1>
+      <ContactForm name={name} number={number} onChangeName={handleChangeName} onChangeNumber={handleChangeNumber} onSubmit={handleSubmitContact} />
+      <h2 style={{ margin: '0px', marginTop: '50px' }}>Contacts</h2>
+      <Filter filter={handleChangeFilter} />
+      <ContactList contacts={getFilteredContacts} onDelete={handleDelete} />
         
-      </div>
-    );
-  };
-
+    </div>
+  );
 }
+
 
 App.propTypes = {
   contacts: PropTypes.arrayOf(
